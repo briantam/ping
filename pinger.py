@@ -7,6 +7,8 @@ import select
 import signal
 import socket
 import time
+import struct
+import array
 
 
 # ICMP Echo Constants (see RFC 792)
@@ -34,6 +36,14 @@ class Pinger(object):
             'tot_time': 0
         }
 
+        try:
+            self.sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_ICMP)
+        except socket.error as e:
+            if e.errno == 1:
+                print(e.args[1] + ' - must run program as root to use raw sockets.')
+                sys.exit(0)
+            raise
+
     def display_stats(self):
         """
         Dump the stats upon ping completion or 'CTRL-C'
@@ -43,7 +53,7 @@ class Pinger(object):
 
     def ping(self):
         """
-        Wrapper function around the entire 'ping' utility
+        Driver function behind the entire 'ping' utility
         """
         try:
             print('Pinging {} with {} bytes of data "{}"'.format(
@@ -59,29 +69,53 @@ class Pinger(object):
         # send 'count' ICMP echo requests
         for seq_num in range(self.count):
             self.send_one(seq_num)
-
             time.sleep(1)
 
+        self.sock.close()
         self.display_stats()
 
     def send_one(self, sequence_num):
         """
-        Function that focuses on a single ICMP echo + reply transaction
+        Send a single ICMP echo request and receive the echo reply
+        @return delay (i.e., RTT)
         """
+        sent_time = self._send(sequence_num)
+
+        print('ping' + str(sequence_num) + ' ' + str(sent_time))
+
+    def _send(self, sequence_num):
+        """
+        Send one echo request
+        @return transmission time
+        """
+        checksum = 0
+
+        # Create a temp ICMP header with 0 as checksum
+        header = struct.pack('!BBHHH', ICMP_ECHO_REQ, ICMP_ECHO_CODE,
+                             checksum, self.id, sequence_num)
+        payload = self.payload.encode()
+        checksum = self._compute_checksum(header + payload)
+
+        # print(struct.unpack('!BBHHH', header))
+        # print(self.id)
+
+        # Recreate the ICMP header with calculated checksum
+        header = struct.pack('!BBHHH', ICMP_ECHO_REQ, ICMP_ECHO_CODE,
+                             checksum, self.id, sequence_num)
+        packet = header + payload
+
+        # Send off the ICMP echo request
+        sent_time = time.time()
         try:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_ICMP)
+            self.sock.sendto(packet, (self.dst, 1))
         except socket.error as e:
-            if e.errno == 1:
-                print('Error: must run program as root to use raw sockets.')
-                sys.exit(0)
-            raise
+            raise e
 
-        print('ping' + str(sequence_num) + '!')
+        return sent_time
 
-
-    def _send(self):
+    def _receive(self):
         """
-        Function that focuses on send part of ping transaction
+        Receive one echo reply
         """
         pass
 
