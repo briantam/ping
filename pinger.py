@@ -119,11 +119,21 @@ class Pinger(object):
         """
         pass
 
-    def _receive(self):
+    def _compute_checksum(self, packet):
         """
-        Function that focuses on receive part of ping transaction
+        Compute the checksum for the ICMP packet, per RFC 792 + RFC 1071
+        @return checksum of header + payload
         """
-        pass
+        # creds to scapy's implementation
+        if len(packet) % 2 == 1:
+            packet += bytes('\0', 'utf-8')
+        s = sum(array.array('H', packet))
+        s = (s >> 16) + (s & 0xFFFF)
+        s += s >> 16
+        s = ~s & 0xFFFF
+
+        # little to big endian (host -> network)
+        return socket.htons(s)
 
 
 def main():
