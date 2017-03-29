@@ -128,7 +128,7 @@ class Pinger(object):
         Compute the checksum for the ICMP packet, per RFC 792 + RFC 1071
         @return checksum of header + payload
         """
-        # creds to scapy's implementation
+        # scapy's implementation (thanks scapy!)
         if len(packet) % 2 == 1:
             packet += bytes('\0', 'utf-8')
         s = sum(array.array('H', packet))
@@ -136,8 +136,11 @@ class Pinger(object):
         s += s >> 16
         s = ~s & 0xFFFF
 
-        # little to big endian (host -> network)
-        return socket.htons(s)
+        # return based on endianness
+        if sys.byteorder == 'little':
+            return socket.htons(s)
+        else:
+            return s
 
 
 def main():
