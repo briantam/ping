@@ -109,7 +109,11 @@ class Pinger(object):
         try:
             self.sock.sendto(packet, (self.dst, 1))
         except socket.error as e:
-            raise e
+            if e.errno == 65:
+                print('Network is unreachable.')
+                sys.exit(0)
+            else:
+                raise e
 
         return sent_time
 
