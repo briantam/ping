@@ -6,6 +6,13 @@ import os
 import select
 import signal
 import socket
+import time
+
+
+# ICMP Echo Constants (see RFC 792)
+ICMP_ECHO_REQ = 8
+ICMP_ECHO_REP = 0
+ICMP_ECHO_CODE = 0
 
 
 class Pinger(object):
@@ -16,6 +23,8 @@ class Pinger(object):
         self.count = args.count
         self.payload = args.payload
         self.dst = args.dst
+
+        self.id = os.getpid() & 0xFFFF    # cap to 16 bits
 
         self.stats = {
             'pkts_sent': 0,
@@ -29,27 +38,46 @@ class Pinger(object):
         """
         Dump the stats upon ping completion or 'CTRL-C'
         """
-        pass
+        print('Ping statistics for {}:'.format(self.dst))
+        print(str(self.stats))
 
     def ping(self):
         """
         Wrapper function around the entire 'ping' utility
         """
-        print('Pinging {} with {} bytes of data "{}"'.format(
-            socket.gethostbyname(self.dst), len(self.payload.encode()), self.payload))
+        try:
+            print('Pinging {} with {} bytes of data "{}"'.format(
+                socket.gethostbyname(self.dst), len(self.payload.encode()), self.payload))
 
-        # just in case user didn't pass in IP address
-        self.dst = socket.gethostbyname(self.dst)
+            # just in case user didn't pass in IP address
+            self.dst = socket.gethostbyname(self.dst)
+
+        except socket.gaierror as e:
+            print('Unkown host: {} ({})'.format(self.dst, e.args[1]))
+            sys.exit(0)
 
         # send 'count' ICMP echo requests
-        for i in range(self.count):
-            self.send_one()
+        for seq_num in range(self.count):
+            self.send_one(seq_num)
 
-    def send_one(self):
+            time.sleep(1)
+
+        self.display_stats()
+
+    def send_one(self, sequence_num):
         """
         Function that focuses on a single ICMP echo + reply transaction
         """
-        print('ping!')
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_ICMP)
+        except socket.error as e:
+            if e.errno == 1:
+                print('Error: must run program as root to use raw sockets.')
+                sys.exit(0)
+            raise
+
+        print('ping' + str(sequence_num) + '!')
+
 
     def _send(self):
         """
