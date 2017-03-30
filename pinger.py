@@ -52,7 +52,22 @@ class Pinger(object):
         Dump the stats upon ping completion or 'CTRL-C'
         """
         print('Ping statistics for {}:'.format(self.dst))
-        print(str(self.stats))
+
+        if self.stats['pkts_sent'] > 0:
+            lost_count = self.stats['pkts_sent'] - self.stats['pkts_rcvd']
+            lost_percent = lost_count / self.stats['pkts_sent'] * 100.0
+        else:
+            lost_count = 0
+            lost_percent = 0.0
+
+        print('  Packets: Sent = {}, Received = {}, Lost = {} ({:.0f}% loss),'
+              .format(self.stats['pkts_sent'], self.stats['pkts_rcvd'], lost_count, lost_percent))
+
+        if self.stats['pkts_rcvd'] > 0:
+            print('  Approximate round trip times in milli-seconds:')
+            print('  Minimum = {:.3f}ms, Maximum = {:.3f}ms, Average = {:.3f}ms'
+                  .format(self.stats['min_time'], self.stats['max_time'],
+                          self.stats['tot_time'] / self.stats['pkts_rcvd']))
 
     def ping(self):
         """
