@@ -130,11 +130,12 @@ class Pinger(object):
         """
         # scapy's implementation (thanks scapy!)
         if len(packet) % 2 == 1:
-            packet += bytes('\0', 'utf-8')
-        s = sum(array.array('H', packet))
-        s = (s >> 16) + (s & 0xFFFF)
-        s += s >> 16
-        s = ~s & 0xFFFF
+            packet += bytes('\0', 'utf-8')  # pad packet to even number of bytes
+
+        s = sum(array.array('H', packet))   # accumlate in chuncks of 16-bits to 32-bit word
+        s = (s >> 16) + (s & 0xFFFF)        # add all carry out bits back to lower 16 bits
+        s += s >> 16                        # one more carry out may have been generated
+        s = ~s & 0xFFFF                     # finally, invert and truncate to 16 bits
 
         # return based on endianness
         if sys.byteorder == 'little':
