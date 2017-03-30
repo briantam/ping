@@ -127,11 +127,53 @@ class Pinger(object):
 
         return sent_time
 
-    def _receive(self):
+    def _receive(self, sequence_num, sent_time):
         """
         Receive one echo reply
+        @return recv_time
         """
-        pass
+        time_remaining = DEFAULT_TIMEOUT / 1000
+        while True:
+            start_time = time.time()
+            readable, writable, exceptions = select.select([self.sock], [], [], time_remaining)
+            duration = time.time() - start_time
+
+            if not readable:
+                print('DEBUG: Request timeout for icmp_seq ' + str(sequence_num))
+                return None     # timeout occurs
+
+            recv_time = time.time()
+            packet, addr = self.sock.recvfrom(MAX_BUF_SIZE)
+
+            # unpack IP header
+            ip_header = packet[0:20]
+
+            # unpack ICMP header
+            icmp_header = packet[20:28]
+            icmp_type, icmp_code, icmp_chksum, \
+                icmp_id, icmp_seq = struct.unpack('!BBHHH', icmp_header)
+
+            # check if this is our packet (echo reply + matching id)
+            if (icmp_type == ICMP_ECHO_REP) and (icmp_id == self.id):
+                ip_vhl, ip_tos, ip_len, ip_id, ip_flags, \
+                    ip_ttl, ip_proto, ip_chksum, ip_src, ip_dst = struct.unpack(
+                        '!BBHHHBBHII', ip_header)
+
+                ip_src = socket.inet_ntoa(struct.pack('!I', ip_src))
+                ip_dst = socket.inet_ntoa(struct.pack('!I', ip_dst))
+
+                rtt = (recv_time - sent_time) * 1000
+                payload_len = len(packet) - 28
+
+                print('  Reply from {}: bytes={} time={:.3f}ms TTL={}'
+                      .format(ip_src, payload_len, rtt, ip_ttl))
+
+                return recv_time
+
+            # not our packet -> back to select, if time remaining
+            time_remaining = time_remaining - duration
+            if time_remaining <= 0:
+                return None
 
     def _compute_checksum(self, packet):
         """
