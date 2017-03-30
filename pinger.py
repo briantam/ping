@@ -47,6 +47,16 @@ class Pinger(object):
                 sys.exit(0)
             raise
 
+        signal.signal(signal.SIGINT, self.signal_handler)
+
+    def signal_handler(self, signal, frame):
+        """
+        Handle 'CTRL-C' by closing socket and dumping stats
+        """
+        self.sock.close()
+        self.display_stats()
+        sys.exit(0)
+
     def display_stats(self):
         """
         Dump the stats upon ping completion or 'CTRL-C'
