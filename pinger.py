@@ -147,7 +147,10 @@ class Pinger(object):
         except socket.error as e:
             if e.errno == 65:
                 print('Network is unreachable.')
-                sys.exit(0)
+                if sequence_num == 0:
+                    sys.exit(0)
+                else:
+                    return
             else:
                 print('Failed to send echo request ({})'.format(str(e)))
                 return
