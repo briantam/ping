@@ -16,6 +16,9 @@ ICMP_ECHO_REQ = 8
 ICMP_ECHO_REP = 0
 ICMP_ECHO_CODE = 0
 
+MAX_BUF_SIZE = 4096         # arbitrary max buf size
+DEFAULT_TIMEOUT = 2000      # timeout for each echo request (ms)
+
 
 class Pinger(object):
     """Representation of the ping utility tool"""
@@ -80,8 +83,14 @@ class Pinger(object):
         @return delay (i.e., RTT)
         """
         sent_time = self._send(sequence_num)
+        if sent_time is None:
+            return
+        self.stats['pkts_sent'] += 1
 
-        print('ping' + str(sequence_num) + ' ' + str(sent_time))
+        recv_time = self._receive(sequence_num, sent_time)
+        if recv_time is None:
+            return
+        self.stats['pkts_rcvd'] += 1
 
     def _send(self, sequence_num):
         """
@@ -113,7 +122,8 @@ class Pinger(object):
                 print('Network is unreachable.')
                 sys.exit(0)
             else:
-                raise e
+                print('Failed to send echo request ({})'.format(str(e)))
+                return
 
         return sent_time
 
