@@ -82,15 +82,27 @@ class Pinger(object):
         Send a single ICMP echo request and receive the echo reply
         @return delay (i.e., RTT)
         """
+        # send echo request
         sent_time = self._send(sequence_num)
         if sent_time is None:
             return
         self.stats['pkts_sent'] += 1
 
+        # receive echo reply
         recv_time = self._receive(sequence_num, sent_time)
         if recv_time is None:
             return
         self.stats['pkts_rcvd'] += 1
+
+        # update other stat counters
+        delay = (recv_time - sent_time) * 1000
+        self.stats['tot_time'] += delay
+        if delay > self.stats['max_time']:
+            self.stats['max_time'] = delay
+        if delay < self.stats['min_time']:
+            self.stats['min_time'] = delay
+
+        return delay
 
     def _send(self, sequence_num):
         """
