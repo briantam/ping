@@ -1,0 +1,15 @@
+# Virtualenv
+.Python
+[Bb]in
+[Ii]nclude
+[Ll]ib
+[Ll]ib64
+[Ss]hare
+[Tt]ests
+pyvenv.cfg
+.venv
+pip-selfcheck.json
+
+# Sublime
+*.sublime-project
+*.sublime-workspace
