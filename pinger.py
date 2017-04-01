@@ -109,9 +109,10 @@ class Pinger(object):
         """
         # send echo request
         sent_time = self._send(sequence_num)
+        self.stats['pkts_sent'] += 1
+
         if sent_time is None:
             return
-        self.stats['pkts_sent'] += 1
 
         # receive echo reply
         recv_time = self._receive(sequence_num, sent_time)
@@ -132,7 +133,7 @@ class Pinger(object):
     def _send(self, sequence_num):
         """
         Send one echo request
-        @return transmission time
+        @return sent_time or None on failure
         """
         checksum = 0
 
