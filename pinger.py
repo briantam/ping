@@ -157,13 +157,13 @@ class Pinger(object):
             self.sock.sendto(packet, (self.dst, 1))
         except socket.error as e:
             if e.errno == 65 or e.errno == 101:
-                print('Network is unreachable.')
+                print('  Network is unreachable.')
                 if sequence_num == 0:
                     sys.exit(0)
                 else:
                     return
             else:
-                print('Failed to send echo request ({})'.format(str(e)))
+                print('  Failed to send echo request ({})'.format(str(e)))
                 return
 
         return sent_time
@@ -180,7 +180,7 @@ class Pinger(object):
             duration = time.time() - start_time
 
             if not readable:
-                print('DEBUG: Request timeout for icmp_seq ' + str(sequence_num))
+                print('  Request timeout for icmp_seq ' + str(sequence_num))
                 return None     # timeout occurs
 
             recv_time = time.time()
