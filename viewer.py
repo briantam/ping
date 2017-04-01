@@ -45,10 +45,23 @@ def sniff_offline(args):
     try:
         with open(args.read, 'rb') as f:
             reader = dpkt.pcap.Reader(f)
-            reader.dispatch(0 if not args.count else args.count, parse_ICMP_Echo)
+
+            if not args.count:
+                count = True
+            else:
+                count = args.count
+
+            while count:
+                ts, pkt = next(iter(reader))
+                ret = parse_ICMP_Echo(ts, pkt)
+
+                if ret and args.count:
+                    count -= 1
     except FileNotFoundError as e:
         print('File \'{}\' not found.'.format(args.read))
         sys.exit(1)
+    except StopIteration:
+        sys.exit(0)
 
 
 def parse_ICMP_Echo(timestamp, packet):
