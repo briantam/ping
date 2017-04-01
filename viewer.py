@@ -32,29 +32,38 @@ def sniff_online(args):
             eth = dpkt.ethernet.Ethernet(packet)
             # print(header)
             # print(packet)
-            print('ETH')
-            print(eth)
+            # print('ETH')
+            # print(eth)
 
             # Make sure IPv4 is next protocol
             if isinstance(eth.data, dpkt.ip.IP):
-                print('IP')
+                # print('IP')
                 ip = eth.data
                 # Make sure ICMP is next protocol
                 if isinstance(ip.data, dpkt.icmp.ICMP):
-                    print('ICMP')
+                    # print('ICMP')
                     icmp = ip.data
                     # Make sure ICMP Echo is payload
                     if isinstance(icmp.data, dpkt.icmp.ICMP.Echo):
-                        print('ICMP ECHO')
+                        # print('ICMP ECHO')
                         echo = icmp.data
-                        print(echo)
-                        print('-----------------------------DATA----------------------------')
-                        print(header.getts())
-                        print('%s > %s' % (socket.inet_ntoa(ip.src), socket.inet_ntoa(ip.dst)))
-                        print('Type: %d, Code: %d, Id: %d, Seq: %d, Data: %s bytes'
-                              % (icmp.type, icmp.code, echo.id, echo.seq, len(echo.data)))
-                        print('-------------------------------------------------------------')
-                        print()
+                        # print(echo)
+
+                        if icmp.type == dpkt.icmp.ICMP_ECHO:
+                            echo_type_str = 'request'
+                        elif icmp.type == dpkt.icmp.ICMP_ECHOREPLY:
+                            echo_type_str = 'reply'
+                        else:
+                            continue
+
+                        timestamp = header.getts()
+                        ip_src = socket.inet_ntoa(ip.src)
+                        ip_dst = socket.inet_ntoa(ip.dst)
+
+                        print('{}.{} '.format(*timestamp), end='')
+                        print('{} > {}: '.format(ip_src, ip_dst), end='')
+                        print('ICMP echo {}, id {}, seq {}, length {}'
+                              .format(echo_type_str, echo.id, echo.seq, len(echo.data)))
 
                         if args.count:
                             count -= 1
