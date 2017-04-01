@@ -3,6 +3,7 @@
 import dpkt
 import pcapy
 import sys
+import signal
 import socket
 import argparse
 
@@ -11,7 +12,7 @@ def sniff_online(args):
     """
     Sniff the ICMP Echo packets that come through the given interface
     """
-    print('DEBUG: sniffing device: ' + args.interface)
+    print('viewer: listening on ' + args.interface)
 
     try:
         sniffer = pcapy.open_live(args.interface, 65536, 1, 1)
@@ -50,7 +51,7 @@ def sniff_online(args):
                         print('-----------------------------DATA----------------------------')
                         print(header.getts())
                         print('%s > %s' % (socket.inet_ntoa(ip.src), socket.inet_ntoa(ip.dst)))
-                        print('Type: %d, Code: %d, Id: %d, Seq: %d, Data: %s'
+                        print('Type: %d, Code: %d, Id: %d, Seq: %d, Data: %s bytes'
                               % (icmp.type, icmp.code, echo.id, echo.seq, len(echo.data)))
                         print('-------------------------------------------------------------')
                         print()
@@ -61,6 +62,13 @@ def sniff_online(args):
 
 def sniff_offline(args):
     print('Reading from pcap file:', args.read)
+
+
+def signal_handler(signum, frame):
+    """
+    Handle 'CTRL-C' by gracefully closing without traceback
+    """
+    sys.exit(0)
 
 
 def main():
@@ -95,6 +103,9 @@ def main():
         parser.print_help()
         sys.exit(1)
     args = parser.parse_args()
+
+    # Override signal handler
+    signal.signal(signal.SIGINT, signal_handler)
 
     # Capture packets!
     if args.interface:
