@@ -30,24 +30,16 @@ def sniff_online(args):
         (header, packet) = sniffer.next()
         if header:
             eth = dpkt.ethernet.Ethernet(packet)
-            # print(header)
-            # print(packet)
-            # print('ETH')
-            # print(eth)
 
             # Make sure IPv4 is next protocol
             if isinstance(eth.data, dpkt.ip.IP):
-                # print('IP')
                 ip = eth.data
                 # Make sure ICMP is next protocol
                 if isinstance(ip.data, dpkt.icmp.ICMP):
-                    # print('ICMP')
                     icmp = ip.data
                     # Make sure ICMP Echo is payload
                     if isinstance(icmp.data, dpkt.icmp.ICMP.Echo):
-                        # print('ICMP ECHO')
                         echo = icmp.data
-                        # print(echo)
 
                         if icmp.type == dpkt.icmp.ICMP_ECHO:
                             echo_type_str = 'request'
