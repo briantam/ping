@@ -155,7 +155,7 @@ class Pinger(object):
         try:
             self.sock.sendto(packet, (self.dst, 1))
         except socket.error as e:
-            if e.errno == 65:
+            if e.errno == 65 or e.errno == 101:
                 print('Network is unreachable.')
                 if sequence_num == 0:
                     sys.exit(0)
