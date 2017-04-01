@@ -29,40 +29,56 @@ def sniff_online(args):
     while count:
         (header, packet) = sniffer.next()
         if header:
-            eth = dpkt.ethernet.Ethernet(packet)
+            tts = header.getts()
+            ret = parse_ICMP_Echo(tts[0] + tts[1] / 1000000, packet)
 
-            # Make sure IPv4 is next protocol
-            if isinstance(eth.data, dpkt.ip.IP):
-                ip = eth.data
-                # Make sure ICMP is next protocol
-                if isinstance(ip.data, dpkt.icmp.ICMP):
-                    icmp = ip.data
-                    # Make sure ICMP Echo is payload
-                    if isinstance(icmp.data, dpkt.icmp.ICMP.Echo):
-                        echo = icmp.data
-
-                        if icmp.type == dpkt.icmp.ICMP_ECHO:
-                            echo_type_str = 'request'
-                        elif icmp.type == dpkt.icmp.ICMP_ECHOREPLY:
-                            echo_type_str = 'reply'
-                        else:
-                            continue
-
-                        timestamp = header.getts()
-                        ip_src = socket.inet_ntoa(ip.src)
-                        ip_dst = socket.inet_ntoa(ip.dst)
-
-                        print('{}.{} '.format(*timestamp), end='')
-                        print('{} > {}: '.format(ip_src, ip_dst), end='')
-                        print('ICMP echo {}, id {}, seq {}, length {}'
-                              .format(echo_type_str, echo.id, echo.seq, len(echo.data)))
-
-                        if args.count:
-                            count -= 1
+            if ret and args.count:
+                count -= 1
 
 
 def sniff_offline(args):
-    print('Reading from pcap file:', args.read)
+    """
+    Sniff the ICMP Echo packets from the given pcap file
+    """
+    print('viewer: reading from ' + args.read)
+
+
+def parse_ICMP_Echo(timestamp, packet):
+    """
+    Parse the raw bytes of a given packet and prints info only if ICMP Echo type
+    @param timestamp - float of the timestamp in epoch time
+    @param packet - the bytes buffer/obj. representing the packet
+    @return - True if packet info was extracted, False otherwise
+    """
+    eth = dpkt.ethernet.Ethernet(packet)
+
+    # Make sure IPv4 is next protocol
+    if isinstance(eth.data, dpkt.ip.IP):
+        ip = eth.data
+        # Make sure ICMP is next protocol
+        if isinstance(ip.data, dpkt.icmp.ICMP):
+            icmp = ip.data
+            # Make sure ICMP Echo is payload
+            if isinstance(icmp.data, dpkt.icmp.ICMP.Echo):
+                echo = icmp.data
+
+                if icmp.type == dpkt.icmp.ICMP_ECHO:
+                    echo_type_str = 'request'
+                elif icmp.type == dpkt.icmp.ICMP_ECHOREPLY:
+                    echo_type_str = 'reply'
+                else:
+                    return False
+
+                ip_src = socket.inet_ntoa(ip.src)
+                ip_dst = socket.inet_ntoa(ip.dst)
+
+                print('{:.6f} '.format(timestamp), end='')
+                print('{} > {}: '.format(ip_src, ip_dst), end='')
+                print('ICMP echo {}, id {}, seq {}, length {}'
+                      .format(echo_type_str, echo.id, echo.seq, len(echo.data)))
+                return True
+
+    return False
 
 
 def signal_handler(signum, frame):
